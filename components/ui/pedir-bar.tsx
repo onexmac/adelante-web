@@ -66,18 +66,20 @@ export function PedirBar({
 
   return (
     <div className="relative w-full" style={{ height: HEIGHT }}>
-      {/* Menu stack — BEHIND the main bar so pills emerge from the menu button */}
+      {/* Menu stack — BEHIND the main bar so pills emerge from the menu button.
+          Each pill's HEIGHT stays constant (scaleY: 1). Only the width
+          collapses into the button via scaleX, and y animates to slide them
+          up into their stacked positions. Origin = bottom-left, so the
+          collapse point is the menu button's left edge. */}
       <div className="pointer-events-none absolute inset-0">
         {MENU_ITEMS.map((item, index) => {
           const count = MENU_ITEMS.length;
           const naturalY = -(HEIGHT + PILL_SPACING) - (count - 1 - index) * (PILL_HEIGHT + PILL_SPACING);
-          const closedOffsetX = MENU_WIDTH / 2;
-          const closedOffsetY = HEIGHT / 2 + PILL_SPACING + (count - 1 - index) * (PILL_HEIGHT + PILL_SPACING);
 
           const openDelay = (count - 1 - index) * 0.05;
           const closeDelay = index * 0.04;
           const transition = isMenuOpen
-            ? { ...springs.popping, delay: openDelay }   // bouncy, fast
+            ? { ...springs.popping, delay: openDelay }
             : { ...springs.shrinking, delay: closeDelay };
 
           const Icon = item.icon;
@@ -95,11 +97,11 @@ export function PedirBar({
                 translateZ: 0,
               }}
               animate={{
-                scale: isMenuOpen ? 1 : 0.01,
-                x: isMenuOpen ? 0 : closedOffsetX,
-                y: isMenuOpen ? naturalY : naturalY + closedOffsetY,
+                scaleX: isMenuOpen ? 1 : 0,
+                scaleY: 1,
+                y: isMenuOpen ? naturalY : 0,
               }}
-              initial={{ scale: 0.01, x: closedOffsetX, y: naturalY + closedOffsetY }}
+              initial={{ scaleX: 0, scaleY: 1, y: 0 }}
               transition={transition}
             >
               <PressableButton
