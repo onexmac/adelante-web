@@ -1,13 +1,13 @@
 import Link from 'next/link';
-import { ArrowRight, Cpu, Palette, Sparkles, Vibrate, Component, Layers } from 'lucide-react';
+import { ArrowRight, Cpu, Palette, Sparkle, Vibrate, SquaresFour, Stack } from '@phosphor-icons/react/dist/ssr';
 import { PageHeader } from '@/components/ds/showcase';
 
 const SECTIONS = [
-  { href: '/motion',     title: 'Motion',     icon: Sparkles, body: 'Six semantic springs. Pick by the meaning of the interaction, not its visual speed.' },
-  { href: '/haptics',    title: 'Haptics',    icon: Vibrate,  body: 'Web Vibration API vocabulary mirroring the SwiftUI HapticEngine. Silent on iOS Safari.' },
-  { href: '/colors',     title: 'Colors',     icon: Palette,  body: 'Brand green, halo tones, surfaces. Light + dark, all CSS-token-driven.' },
-  { href: '/components', title: 'Components', icon: Component, body: 'PressableButton, CheckboxMark, QuantitySlider, SlideToConfirm, PedirBar, PackageCard.' },
-  { href: '/prototype',  title: 'Prototype',  icon: Layers,   body: 'The full Confirm screen, end-to-end. Same interactions as the SwiftUI app.' },
+  { href: '/motion',     title: 'Motion',     icon: Sparkle,     body: 'Six semantic springs. Pick by the meaning of the interaction, not its visual speed.' },
+  { href: '/haptics',    title: 'Haptics',    icon: Vibrate,     body: 'Web Vibration API vocabulary mirroring the SwiftUI HapticEngine. Silent on iOS Safari.' },
+  { href: '/colors',     title: 'Colors',     icon: Palette,     body: 'Brand green, halo tones, surfaces. Light + dark, all CSS-token-driven.' },
+  { href: '/components', title: 'Components', icon: SquaresFour, body: 'PressableButton, CheckboxMark, QuantitySlider, SlideToConfirm, PedirBar, PackageCard.' },
+  { href: '/prototype',  title: 'Prototype',  icon: Stack,       body: 'The full Confirm screen, end-to-end. Same interactions as the SwiftUI app.' },
 ];
 
 export default function Home() {
@@ -56,7 +56,7 @@ export default function Home() {
             <dt className="text-muted-foreground">Framework</dt><dd>Next.js + TypeScript (App Router)</dd>
             <dt className="text-muted-foreground">Styling</dt><dd>Tailwind v4, CSS tokens via <code className="text-[12px]">@theme</code></dd>
             <dt className="text-muted-foreground">Motion</dt><dd>motion/react (Framer Motion)</dd>
-            <dt className="text-muted-foreground">Icons</dt><dd>lucide-react</dd>
+            <dt className="text-muted-foreground">Icons</dt><dd>@phosphor-icons/react</dd>
             <dt className="text-muted-foreground">Theming</dt><dd>next-themes (class-based)</dd>
           </dl>
         </div>

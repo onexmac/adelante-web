@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ExternalLink } from 'lucide-react';
+import { ArrowSquareOut } from '@phosphor-icons/react/dist/ssr';
 import { PageHeader } from '@/components/ds/showcase';
 import { PackageConfirmScreen } from '@/components/package-confirm-screen';
 
@@ -17,7 +17,7 @@ export default function PrototypePage() {
           href="/app"
           className="inline-flex items-center gap-2 rounded-full border border-black/10 dark:border-white/10 bg-card px-4 py-2 text-sm font-medium hover:border-foreground/40"
         >
-          Open full-screen <ExternalLink size={14} />
+          Open full-screen <ArrowSquareOut size={14} weight="bold" />
         </Link>
       </div>
 

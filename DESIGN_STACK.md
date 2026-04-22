@@ -32,7 +32,7 @@ If something needs data, hardcoded mock structs in `lib/mock-data.ts`. Keep it s
 | Styling | Tailwind v4 with `@theme` tokens in `app/globals.css` |
 | Motion | `motion` (motion/react) — drag, springs, layout |
 | Theming | `next-themes` (class-based) |
-| Icons | `lucide-react` (placeholder; swap to Figma SVGs when available) |
+| Icons | [`@phosphor-icons/react`](https://phosphoricons.com) — weight variants (`regular` / `bold` / `fill` / `duotone`). Swap to Figma-exported SVGs when available. |
 | Class util | `cn()` from `clsx` + `tailwind-merge` |
 
 ---
@@ -212,7 +212,7 @@ The `npm run build` output should list all 13 routes as `○ (Static)`.
 | Item | Where to start |
 |---|---|
 | Full Figma menu (vertical PEDIR pill + search button + true X menu button morph) | Figma node `866:3424`. Update `PedirBar`'s armed-and-menu-open state. |
-| Real Figma SVGs | Drop into `public/icons/`. Replace `lucide-react` imports with `<Image>` in `pedir-bar.tsx` and `package-card.tsx`. |
+| Real Figma SVGs | Drop into `public/icons/`. Replace `@phosphor-icons/react` imports with `<Image>` in `pedir-bar.tsx` and `package-card.tsx`. |
 | Optimistic UI with TanStack Query | Wrap `submitOrder()` in `useMutation` with `onMutate`. Currently flips local state synchronously. |
 | Drag-to-reorder cards | Add `@dnd-kit/sortable` around the cards' `<div className="space-y-3">`. |
 | Per-quantity persistence on drag | Currently `QuantitySlider.onChange` only fires on drag end. Throttle inside `useMotionValueEvent` if you want streaming updates. |

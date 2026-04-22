@@ -62,7 +62,7 @@ lib/
 | Language | TypeScript | Mirrors SwiftUI's strictness |
 | Styling | Tailwind v4 with `@theme` | Tokens live in `app/globals.css`, exposed as Tailwind classes — `bg-brand`, `text-muted-foreground`, `rounded-pill` |
 | Motion | `motion` (motion/react) | Drag with rubber-band, `useMotionValue` for GPU transforms, `useMotionValueEvent` for cheap drag-time hooks |
-| Icons | `lucide-react` | Lightweight, swap-out target for Figma-exported SVGs later |
+| Icons | [`@phosphor-icons/react`](https://phosphoricons.com) | Consistent shape language, weight variants (`regular` / `bold` / `fill` / etc.), good Figma parity. Swap-out target when Figma-exported SVGs are available. |
 | Theming | `next-themes` (class-based) | Manual light/dark toggle + system, no flash on load |
 | Class util | `clsx` + `tailwind-merge` via `cn()` | Standard shadcn pattern |
 

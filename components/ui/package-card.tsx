@@ -13,7 +13,7 @@
  */
 
 import { motion } from 'motion/react';
-import { ChevronsUpDown, X, Info } from 'lucide-react';
+import { CaretUpDown, X, Info } from '@phosphor-icons/react';
 import type { MockPackage, MockPackageItem } from '@/lib/types';
 import { haptic } from '@/lib/haptic';
 import { springs } from '@/lib/springs';
@@ -100,8 +100,8 @@ export function PackageCard({
             aria-label={isExpanded ? 'Colapsar' : 'Expandir'}
           >
             {isExpanded
-              ? <X size={14} strokeWidth={3} />
-              : <ChevronsUpDown size={14} strokeWidth={3} />}
+              ? <X size={14} weight="bold" />
+              : <CaretUpDown size={18} weight="bold" />}
           </PressableButton>
         </div>
       </div>
@@ -148,7 +148,7 @@ export function PackageCard({
               className="flex items-center justify-center text-white"
               aria-label="Cerrar"
             >
-              <X size={13} strokeWidth={3} />
+              <X size={13} weight="bold" />
             </PressableButton>
           </div>
         </motion.div>

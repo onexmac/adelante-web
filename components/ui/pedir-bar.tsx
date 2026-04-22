@@ -19,7 +19,7 @@
 
 import { motion } from 'motion/react';
 import { AnimatePresence } from 'motion/react';
-import { ChevronsUp, Play, ListOrdered, Inbox, X } from 'lucide-react';
+import { CaretDoubleUp, ClipboardText, Package, Truck, X } from '@phosphor-icons/react';
 import { haptic } from '@/lib/haptic';
 import { springs } from '@/lib/springs';
 import { PressableButton, halo } from './pressable-button';
@@ -34,9 +34,9 @@ const PILL_HEIGHT = 80;
 const PILL_SPACING = 8;
 
 const MENU_ITEMS = [
-  { icon: ListOrdered, label: 'PEDIDOS' },
-  { icon: Inbox,       label: 'ENTREGADO' },
-  { icon: Play,        label: 'TRASLADO' },
+  { icon: ClipboardText, label: 'PEDIDOS'   },
+  { icon: Package,       label: 'ENTREGADO' },
+  { icon: Truck,         label: 'TRASLADO'  },
 ] as const;
 
 export interface PedirBarProps {
@@ -119,7 +119,7 @@ export function PedirBar({
                 }}
                 className="flex items-center gap-4 px-6 text-left text-white"
               >
-                <Icon size={22} strokeWidth={2.5} />
+                <Icon size={22} weight="bold" />
                 <span className="text-base font-bold tracking-wider">{item.label}</span>
               </PressableButton>
             </motion.div>
@@ -150,7 +150,7 @@ export function PedirBar({
               className="flex items-center justify-center text-white"
               aria-label="Cancelar"
             >
-              <X size={14} strokeWidth={3} />
+              <X size={14} weight="bold" />
             </PressableButton>
           </motion.div>
         )}
@@ -199,8 +199,8 @@ export function PedirBar({
           aria-label={isMenuOpen ? 'Cerrar menú' : 'Abrir menú'}
         >
           {isMenuOpen
-            ? <X size={22} strokeWidth={3} />
-            : <ChevronsUp size={22} strokeWidth={3} />}
+            ? <X size={22} weight="bold" />
+            : <CaretDoubleUp size={22} weight="bold" />}
         </PressableButton>
       </motion.div>
     </div>
