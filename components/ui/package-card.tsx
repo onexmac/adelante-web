@@ -12,7 +12,7 @@
  * the Buttons to its right own their own press states.
  */
 
-import { AnimatePresence, motion } from 'motion/react';
+import { motion } from 'motion/react';
 import { ChevronsUpDown, X, Info } from 'lucide-react';
 import type { MockPackage, MockPackageItem } from '@/lib/types';
 import { haptic } from '@/lib/haptic';
@@ -40,11 +40,8 @@ export function PackageCard({
   onItemReceivedChange,
 }: PackageCardProps) {
   return (
-    <motion.div
-      layout
-      transition={springs.expanding}
-      className={cn('rounded-card bg-card p-5', 'transition-colors')}
-      style={{ willChange: 'transform' }}
+    <div
+      className={cn('rounded-card bg-card p-5 transition-colors')}
     >
       <div className="flex items-start gap-3">
         {/* Text column — tappable, but doesn't steal from right-hand Buttons */}
@@ -109,45 +106,54 @@ export function PackageCard({
         </div>
       </div>
 
-      {/* Expanded content */}
-      <AnimatePresence initial={false}>
-        {isExpanded && (
-          <motion.div
-            key="expanded"
-            initial={{ opacity: 0, scale: 0.94 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.94 }}
-            transition={springs.expanding}
-            style={{ transformOrigin: 'top center' }}
-          >
-            <div className="mt-4 h-px bg-black/10 dark:bg-white/10" />
+      {/* Expanded content.
+          Outer: height animates 0 ↔ auto — motion measures the child's
+          natural size and animates to a px value. overflow hidden so
+          siblings below reflow as it grows/shrinks.
+          Inner: scale + opacity for the "grow from top" feel. One tree,
+          one spring — no layout+AnimatePresence conflict. */}
+      <motion.div
+        initial={false}
+        animate={{ height: isExpanded ? 'auto' : 0 }}
+        transition={springs.expanding}
+        style={{ overflow: 'hidden' }}
+      >
+        <motion.div
+          initial={false}
+          animate={{
+            opacity: isExpanded ? 1 : 0,
+            scale: isExpanded ? 1 : 0.94,
+          }}
+          transition={springs.expanding}
+          style={{ transformOrigin: 'top center' }}
+        >
+          <div className="mt-4 h-px bg-black/10 dark:bg-white/10" />
 
-            <div className="mt-5 space-y-5">
-              {pkg.items.map((item) => (
-                <ItemRow
-                  key={item.id}
-                  item={item}
-                  onReceivedChange={(v) => onItemReceivedChange(item.id, v)}
-                />
-              ))}
-            </div>
+          <div className="mt-5 space-y-5">
+            {pkg.items.map((item) => (
+              <ItemRow
+                key={item.id}
+                item={item}
+                onReceivedChange={(v) => onItemReceivedChange(item.id, v)}
+              />
+            ))}
+          </div>
 
-            <div className="mt-5 flex justify-end">
-              <PressableButton
-                haloColor={halo.black}
-                cornerRadius={20}
-                onClick={onClose}
-                style={{ backgroundColor: 'black', width: 60, height: 40, borderRadius: 20 }}
-                className="flex items-center justify-center text-white"
-                aria-label="Cerrar"
-              >
-                <X size={13} strokeWidth={3} />
-              </PressableButton>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </motion.div>
+          <div className="mt-5 flex justify-end">
+            <PressableButton
+              haloColor={halo.black}
+              cornerRadius={20}
+              onClick={onClose}
+              style={{ backgroundColor: 'black', width: 60, height: 40, borderRadius: 20 }}
+              className="flex items-center justify-center text-white"
+              aria-label="Cerrar"
+            >
+              <X size={13} strokeWidth={3} />
+            </PressableButton>
+          </div>
+        </motion.div>
+      </motion.div>
+    </div>
   );
 }
 

@@ -4,6 +4,8 @@ Web reference implementation of the SwiftUI Adelante prototype (Losa Flotante / 
 
 This repo is a **prototyping environment**, not production code. Goal: communicate the *feel* of an interaction so that engineers (or another Claude session) can build the same thing inside any real app.
 
+> **Read [`docs/GPU_TRANSFORMS.md`](./docs/GPU_TRANSFORMS.md) first** if you're about to touch any animation. It's the checklist we use to avoid the "cold start" wonkiness and jank that's easy to accidentally introduce on the web.
+
 ---
 
 ## Run it

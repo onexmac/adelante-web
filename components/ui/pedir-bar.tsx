@@ -154,9 +154,9 @@ export function PedirBar({
         )}
       </AnimatePresence>
 
-      {/* Menu button — rendered BEFORE the slider so the growing black track
-          visually covers it on arm. Fades+scales for polish, but the reveal
-          on disarm is mostly the track retracting rightward. */}
+      {/* Menu button — rendered BEFORE the slider (z-below) so the growing
+          track visually covers it on arm. Springs into position faster than
+          the slider expansion for a crisper feel on disarm. */}
       <motion.div
         className="absolute left-0 bottom-0"
         style={{
@@ -169,7 +169,7 @@ export function PedirBar({
           opacity: isArmed ? 0 : 1,
           scale: isArmed ? 0.01 : 1,
         }}
-        transition={isArmed ? springs.shrinking : springs.expanding}
+        transition={isArmed ? springs.shrinking : springs.completing}
       >
         <PressableButton
           haloColor={halo.black}
