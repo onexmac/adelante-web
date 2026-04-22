@@ -40,11 +40,11 @@ export function PackageCard({
   onItemReceivedChange,
 }: PackageCardProps) {
   return (
-    <div
-      className={cn(
-        'rounded-card bg-card p-5',
-        'transition-colors'
-      )}
+    <motion.div
+      layout
+      transition={springs.expanding}
+      className={cn('rounded-card bg-card p-5', 'transition-colors')}
+      style={{ willChange: 'transform' }}
     >
       <div className="flex items-start gap-3">
         {/* Text column — tappable, but doesn't steal from right-hand Buttons */}
@@ -147,7 +147,7 @@ export function PackageCard({
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
+    </motion.div>
   );
 }
 

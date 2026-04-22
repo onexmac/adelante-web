@@ -1,23 +1,29 @@
 'use client';
 
 /**
- * SlideToConfirm — drag the knob rightward past the threshold to commit.
+ * SlideToConfirm — ALWAYS rendered at full width. `isArmed` controls whether
+ * it looks like the compact pill (knob at right, track hidden) or the full
+ * slider (knob at left, track visible).
  *
- * Perf discipline (no React in the drag hot path):
- *  - Knob `x` is a motion value (GPU translate3d). No per-frame React renders.
- *  - Trail width is a useTransform of `x` (motion-driven, updates on the
- *    same animation frame as the knob, no React renders during drag).
- *  - Knob + trail are PROMOTED TO COMPOSITOR LAYERS at mount via translateZ(0)
- *    so the first touch doesn't pay a layer-creation cost.
- *  - Haptic fires on onPointerDown (earlier than onDragStart) for instant feel.
- *  - touch-action: pan-y on the knob so vertical scroll still works on mobile.
+ * Why this shape:
+ *  Previously the parent animated the CONTAINER's width from 160 to 100%.
+ *  Width is a layout property — every frame re-flowed the flex parent,
+ *  causing visible jank on the arm/disarm transition. This version keeps the
+ *  DOM layout stable: only transforms animate.
  *
- * Semantics (mirrors SlideToConfirm.swift):
- *  - Haptic ticks at 25/50/75% progress.
- *  - ≥ 0.72 threshold → commit, success checkmark, auto-reset after hold.
- *  - Below threshold → spring back.
- *  - Tap without drag (|Δx| < 4) → nudge the knob right + back.
- *  - Successful commit calls onConfirm; onReset fires after successHoldMs.
+ * Architecture:
+ *  - Black track — full-width sibling, `scaleX` bound to an `armedProgress`
+ *    motion value. `transformOrigin: right` so it opens leftward from the pill.
+ *  - Green knob — fixed 160px, translated via motion `x`. When collapsed,
+ *    `x = maxDrag` (knob sits at the right). When armed, `x = 0` (knob at
+ *    left) unless the user is dragging it.
+ *  - Green trail — same motion value drives its width via `useTransform`,
+ *    fades with `armedProgress` so it only shows in the armed state.
+ *
+ * Interaction:
+ *  - Tap the knob while collapsed → `onArm()` fires.
+ *  - Tap the knob while armed → nudge (bounce right + back).
+ *  - Drag while armed → standard slide-to-confirm semantics.
  */
 
 import {
@@ -38,31 +44,39 @@ const THRESHOLD = 0.72;
 
 export interface SlideToConfirmProps {
   label?: string;
+  /** Collapsed (compact pill at right) vs armed (full slider). */
+  isArmed: boolean;
+  /** Tap while collapsed → arm the bar. */
+  onArm?: () => void;
+  /** Successful slide. */
   onConfirm: () => void;
-  /** Fired after the success hold completes. Parent can use this to disarm. */
+  /** Fires after the success hold completes — parent uses this to disarm. */
   onReset?: () => void;
-  /** ms the success state holds before the internal reset starts (default 1600). */
+  /** ms to hold the success checkmark before auto-resetting. */
   successHoldMs?: number;
 }
 
 export function SlideToConfirm({
   label = 'PEDIR',
+  isArmed,
+  onArm,
   onConfirm,
   onReset,
-  successHoldMs = 1600,
+  successHoldMs = 700,
 }: SlideToConfirmProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
   const maxDrag = Math.max(0, containerWidth - KNOB_WIDTH);
 
   const x = useMotionValue(0);
-  const [isConfirmed, setConfirmed] = useState(false);
-  const [isDragging, setDragging] = useState(false);
-  const lastTickRef = useRef(0);
-  // Trail width, driven directly from `x` — no React state during drag.
-  const trailWidth = useTransform(x, (v) => KNOB_WIDTH + v);
+  // 0 = collapsed, 1 = armed. Drives track scaleX and trail opacity.
+  const armedProgress = useMotionValue(0);
 
-  // Observe container — measured only on resize, not per-frame.
+  const [isConfirmed, setConfirmed] = useState(false);
+  const isDraggingRef = useRef(false);
+  const lastTickRef = useRef(0);
+
+  // Measure once per resize — no per-frame cost.
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -71,10 +85,24 @@ export function SlideToConfirm({
     return () => obs.disconnect();
   }, []);
 
-  // Drag-time side effects only — no setState here, trail width is a
-  // useTransform so it updates without React.
+  // Sync knob + track to isArmed whenever it flips (and user isn't dragging).
+  useEffect(() => {
+    if (isDraggingRef.current) return;
+    if (isArmed) {
+      animate(x, 0, springs.expanding);
+      animate(armedProgress, 1, springs.expanding);
+    } else {
+      animate(x, maxDrag, springs.shrinking);
+      animate(armedProgress, 0, springs.shrinking);
+    }
+  }, [isArmed, maxDrag, x, armedProgress]);
+
+  // Green trail grows from KNOB_WIDTH as the knob slides right.
+  const trailWidth = useTransform(x, (v) => KNOB_WIDTH + v);
+
+  // Haptic ticks during drag — side effect only, no React state.
   useMotionValueEvent(x, 'change', (latest) => {
-    if (maxDrag <= 0 || isConfirmed) return;
+    if (!isArmed || isConfirmed || maxDrag <= 0) return;
     const p = Math.max(0, Math.min(1, latest / maxDrag));
     const tick = Math.floor(p * 4);
     if (tick !== lastTickRef.current && tick > 0 && tick < 4) {
@@ -104,56 +132,58 @@ export function SlideToConfirm({
     }, successHoldMs);
   };
 
-  const springBack = () => {
-    animate(x, 0, springs.snappy);
-    lastTickRef.current = 0;
-  };
-
-  const progressOpacity = useTransform(x, [0, maxDrag || 1], [0.22, 0]);
-
   return (
     <div
       ref={containerRef}
-      className="relative w-full overflow-visible"
+      className="relative w-full"
       style={{ height: HEIGHT, borderRadius: CORNER }}
     >
-      {/* Black track */}
-      <div
+      {/* Black track — always present; scaleX makes it grow leftward from the pill. */}
+      <motion.div
         aria-hidden
         className="absolute inset-0 bg-black"
-        style={{ borderRadius: CORNER }}
+        style={{
+          scaleX: armedProgress,
+          transformOrigin: 'right center',
+          borderRadius: CORNER,
+          willChange: 'transform',
+          translateZ: 0,
+        }}
       />
 
-      {/* Hint chevron — right side, fades as drag progresses */}
+      {/* Hint chevron — visible only in armed state, fades out as drag progresses. */}
       <motion.span
         aria-hidden
         className="pointer-events-none absolute top-1/2 -translate-y-1/2 select-none text-white font-bold"
-        style={{ right: 28, opacity: progressOpacity, fontSize: 28 }}
-        animate={isDragging || isConfirmed ? { x: 0 } : { x: [-4, 0, -4] }}
-        transition={{ duration: 1.1, repeat: Infinity, ease: 'easeInOut' }}
+        style={{
+          right: 28,
+          fontSize: 28,
+          opacity: useTransform([armedProgress, x], ([p, xv]: number[]) => {
+            const dragProgress = maxDrag > 0 ? Math.max(0, Math.min(1, xv / maxDrag)) : 0;
+            return p * 0.22 * (1 - dragProgress);
+          }),
+        }}
       >
         ›
       </motion.span>
 
-      {/* Green trail — width driven by `x` via useTransform. No React renders
-          during drag. Promoted to its own compositor layer preemptively. */}
+      {/* Green trail — fades with armedProgress so it's invisible when collapsed. */}
       <motion.div
         aria-hidden
         className="absolute left-0 top-0 h-full bg-brand"
         style={{
           width: trailWidth,
+          opacity: armedProgress,
           borderRadius: CORNER,
-          willChange: 'width',
+          willChange: 'width, opacity',
           transform: 'translateZ(0)',
         }}
       />
 
-      {/* Knob — fixed width, translates via GPU transform. Promoted to its
-          own compositor layer at mount via translateZ(0) — the first touch
-          doesn't pay a layer-creation cost. */}
+      {/* Knob — fixed size, translates via GPU. Promoted to a compositor layer. */}
       <motion.div
         className="draggable-x absolute left-0 top-0 flex items-center justify-center font-bold tracking-wider text-black"
-        drag="x"
+        drag={isArmed && !isConfirmed ? 'x' : false}
         dragConstraints={{ left: 0, right: maxDrag }}
         dragElastic={{ left: 0.2, right: 0.15 }}
         dragMomentum={false}
@@ -169,25 +199,24 @@ export function SlideToConfirm({
           translateZ: 0,
         }}
         onPointerDown={() => {
-          // Fires earlier than onDragStart — haptic feels instant.
           if (!isConfirmed) haptic.select();
         }}
         onDragStart={() => {
-          if (isConfirmed) return;
-          setDragging(true);
+          isDraggingRef.current = true;
         }}
         onDragEnd={(_, info) => {
-          if (isConfirmed) return;
-          setDragging(false);
+          isDraggingRef.current = false;
+          if (isConfirmed || !isArmed) return;
+          if (Math.abs(info.offset.x) < 4) return; // handled by onTap
 
-          const translated = Math.abs(info.offset.x);
-          if (translated < 4) {
-            nudge();
-            return;
-          }
           const progress = maxDrag > 0 ? x.get() / maxDrag : 0;
           if (progress >= THRESHOLD) commit();
-          else springBack();
+          else animate(x, 0, springs.snappy);
+        }}
+        onTap={() => {
+          if (isConfirmed) return;
+          if (!isArmed) onArm?.();
+          else nudge();
         }}
         whileTap={{ scale: 1.015 }}
         role="button"
@@ -203,7 +232,14 @@ export function SlideToConfirm({
             transition={springs.completing}
             aria-hidden
           >
-            <path d="M5 12l5 5L20 7" fill="none" stroke="black" strokeWidth={3.5} strokeLinecap="round" strokeLinejoin="round" />
+            <path
+              d="M5 12l5 5L20 7"
+              fill="none"
+              stroke="black"
+              strokeWidth={3.5}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
           </motion.svg>
         ) : (
           <span className="flex items-center gap-2 text-base">

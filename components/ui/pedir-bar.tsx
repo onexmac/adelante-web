@@ -3,21 +3,22 @@
 /**
  * PedirBar — bottom-bar state machine.
  *
- * Collapsed: menu button (left) + compact PEDIR pill (right).
- * Armed:     SlideToConfirm expanded full-width, trailing-anchored, with a
- *            close-X floating above it.
+ * DOM layout never changes: SlideToConfirm is always rendered at FULL WIDTH
+ * and drives its own visual state from `isArmed`. The menu button sits on
+ * top at the leading edge and fades/scales in place when armed — it
+ * doesn't resize siblings.
  *
- * Menu state: three pills stack above the menu button; each pill is always
- * in the view tree and uses scale + offset bound to `isMenuOpen`. They grow
- * from BEHIND the menu button (z-order: pills first, mainBar on top).
+ * Previous version animated the slider container's `width` from 160 to 100%,
+ * which re-flowed the flex parent every frame. This version is all-transform
+ * on the hot path, so the arm/disarm transition runs on the GPU.
  *
- * Disarm is synced with SlideToConfirm's internal reset: both fire on the
- * same spring at the same moment so the pill's trailing edge stays pinned
- * while the width shrinks. The parent (screen) lifts `isArmed` via props so
- * tapping the dim overlay can dismiss.
+ * Menu state: three pills stack above the menu button and cascade in/out
+ * from behind it. `AnimatePresence` is avoided for the menu button itself
+ * — we just animate its opacity and scale inline (no mount/unmount).
  */
 
-import { AnimatePresence, motion } from 'motion/react';
+import { motion } from 'motion/react';
+import { AnimatePresence } from 'motion/react';
 import { ChevronsUp, Play, ListOrdered, Inbox, X } from 'lucide-react';
 import { haptic } from '@/lib/haptic';
 import { springs } from '@/lib/springs';
@@ -25,7 +26,6 @@ import { PressableButton, halo } from './pressable-button';
 import { SlideToConfirm } from './slide-to-confirm';
 
 const HEIGHT = 80;
-const KNOB_WIDTH = 160;
 const MENU_WIDTH = 70;
 const CORNER = 20;
 
@@ -54,8 +54,7 @@ export function PedirBar({
   onMenuChange,
   onConfirm,
 }: PedirBarProps) {
-  const armWithClosedMenu = () => {
-    haptic.select();
+  const arm = () => {
     if (isMenuOpen) onMenuChange(false);
     onArmChange(true);
   };
@@ -71,9 +70,7 @@ export function PedirBar({
       <div className="pointer-events-none absolute inset-0">
         {MENU_ITEMS.map((item, index) => {
           const count = MENU_ITEMS.length;
-          // Natural y = each pill stacked above the bar with gaps
           const naturalY = -(HEIGHT + PILL_SPACING) - (count - 1 - index) * (PILL_HEIGHT + PILL_SPACING);
-          // When closed: collapse toward the menu button's center.
           const closedOffsetX = MENU_WIDTH / 2;
           const closedOffsetY = HEIGHT / 2 + PILL_SPACING + (count - 1 - index) * (PILL_HEIGHT + PILL_SPACING);
 
@@ -95,6 +92,7 @@ export function PedirBar({
                 transformOrigin: 'bottom left',
                 pointerEvents: isMenuOpen ? 'auto' : 'none',
                 willChange: 'transform',
+                translateZ: 0,
               }}
               animate={{
                 scale: isMenuOpen ? 1 : 0.01,
@@ -156,76 +154,50 @@ export function PedirBar({
         )}
       </AnimatePresence>
 
-      {/* Main bar row */}
-      <div className="absolute inset-0 flex items-end gap-2">
-        {/* Menu button — hidden when armed */}
-        <AnimatePresence initial={false}>
-          {!isArmed && (
-            <motion.div
-              key="menu-btn"
-              initial={{ scale: 0.01, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.01, opacity: 0 }}
-              transition={springs.expanding}
-              style={{ transformOrigin: 'left center' }}
-            >
-              <PressableButton
-                haloColor={halo.black}
-                cornerRadius={CORNER}
-                onClick={toggleMenu}
-                style={{
-                  backgroundColor: 'black',
-                  width: MENU_WIDTH,
-                  height: HEIGHT,
-                  borderRadius: CORNER,
-                }}
-                className="flex items-center justify-center text-white"
-                aria-label={isMenuOpen ? 'Cerrar menú' : 'Abrir menú'}
-              >
-                {isMenuOpen
-                  ? <X size={22} strokeWidth={3} />
-                  : <ChevronsUp size={22} strokeWidth={3} />
-                }
-              </PressableButton>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Slider / compact pill — grows to fill remaining space when armed */}
-        <motion.div
-          className="relative"
-          animate={{
-            width: isArmed ? '100%' : KNOB_WIDTH,
+      {/* Menu button — rendered BEFORE the slider so the growing black track
+          visually covers it on arm. Fades+scales for polish, but the reveal
+          on disarm is mostly the track retracting rightward. */}
+      <motion.div
+        className="absolute left-0 bottom-0"
+        style={{
+          transformOrigin: 'left center',
+          pointerEvents: isArmed ? 'none' : 'auto',
+          willChange: 'transform, opacity',
+          translateZ: 0,
+        }}
+        animate={{
+          opacity: isArmed ? 0 : 1,
+          scale: isArmed ? 0.01 : 1,
+        }}
+        transition={isArmed ? springs.shrinking : springs.expanding}
+      >
+        <PressableButton
+          haloColor={halo.black}
+          cornerRadius={CORNER}
+          onClick={toggleMenu}
+          style={{
+            backgroundColor: 'black',
+            width: MENU_WIDTH,
+            height: HEIGHT,
+            borderRadius: CORNER,
           }}
-          transition={isArmed ? springs.expanding : springs.shrinking}
-          style={{ height: HEIGHT, flexShrink: 0, marginLeft: 'auto' }}
+          className="flex items-center justify-center text-white"
+          aria-label={isMenuOpen ? 'Cerrar menú' : 'Abrir menú'}
         >
-          {isArmed ? (
-            <SlideToConfirm
-              onConfirm={onConfirm}
-              onReset={() => onArmChange(false)}
-              successHoldMs={700}
-            />
-          ) : (
-            <PressableButton
-              haloColor={halo.green}
-              cornerRadius={CORNER}
-              onClick={armWithClosedMenu}
-              style={{
-                backgroundColor: 'rgb(189, 222, 59)',
-                width: KNOB_WIDTH,
-                height: HEIGHT,
-                borderRadius: CORNER,
-                boxShadow: '0 3px 6px rgba(0,0,0,0.08)',
-              }}
-              className="flex items-center justify-center gap-2 font-bold tracking-wider text-black"
-            >
-              PEDIR
-              <span className="text-sm">›</span>
-            </PressableButton>
-          )}
-        </motion.div>
-      </div>
+          {isMenuOpen
+            ? <X size={22} strokeWidth={3} />
+            : <ChevronsUp size={22} strokeWidth={3} />}
+        </PressableButton>
+      </motion.div>
+
+      {/* SlideToConfirm — ALWAYS full width. Visual state driven by `isArmed`. */}
+      <SlideToConfirm
+        isArmed={isArmed}
+        onArm={arm}
+        onConfirm={onConfirm}
+        onReset={() => onArmChange(false)}
+        successHoldMs={700}
+      />
     </div>
   );
 }
