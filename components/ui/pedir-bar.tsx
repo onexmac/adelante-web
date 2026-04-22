@@ -91,10 +91,14 @@ export function PedirBar({
               style={{
                 width: PILL_WIDTH,
                 height: PILL_HEIGHT,
-                // Anchor horizontally at the MENU BUTTON'S CENTER (not the
-                // pill's own left edge) so the pill collapses/grows toward
-                // the middle of the button, not the left edge.
-                transformOrigin: `${MENU_WIDTH / 2}px 100%`,
+                // Use motion's originX/originY (not CSS transformOrigin).
+                // Motion defaults originX to 0.5 and overrides CSS inline
+                // transformOrigin when it applies its scale transforms, so
+                // the only reliable way to anchor the collapse at the menu
+                // button's CENTER (not the pill's own middle) is this.
+                // 35 / 280 = 0.125  →  pill's x=35 = menu button's center.
+                originX: (MENU_WIDTH / 2) / PILL_WIDTH,
+                originY: 1, // bottom
                 pointerEvents: isMenuOpen ? 'auto' : 'none',
                 willChange: 'transform',
                 translateZ: 0,
