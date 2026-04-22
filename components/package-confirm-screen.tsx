@@ -58,11 +58,11 @@ export function PackageConfirmScreen({ className }: { className?: string }) {
   return (
     <div
       data-prototype
-      className={`relative isolate min-h-[844px] w-full overflow-hidden bg-background ${className ?? ''}`}
+      className={`relative isolate h-full w-full overflow-hidden bg-background ${className ?? ''}`}
     >
       {/* Scrollable cards */}
-      <div className="h-full max-h-[844px] overflow-y-auto px-3 pt-4 pb-40">
-        <div className="space-y-3">
+      <div className="h-full overflow-y-auto px-3 pt-4 pb-40">
+        <div className="mx-auto max-w-md space-y-3">
           {packages.map((pkg) => (
             <PackageCard
               key={pkg.id}
@@ -98,14 +98,16 @@ export function PackageConfirmScreen({ className }: { className?: string }) {
       </AnimatePresence>
 
       {/* Bar */}
-      <div className="absolute inset-x-4 bottom-6">
-        <PedirBar
-          isArmed={isArmed}
-          onArmChange={setArmed}
-          isMenuOpen={isMenuOpen}
-          onMenuChange={setMenuOpen}
-          onConfirm={submitOrder}
-        />
+      <div className="absolute inset-x-0 bottom-0 px-4 pb-[max(env(safe-area-inset-bottom),1.5rem)]">
+        <div className="mx-auto max-w-md">
+          <PedirBar
+            isArmed={isArmed}
+            onArmChange={setArmed}
+            isMenuOpen={isMenuOpen}
+            onMenuChange={setMenuOpen}
+            onConfirm={submitOrder}
+          />
+        </div>
       </div>
     </div>
   );
