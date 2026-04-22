@@ -103,12 +103,15 @@ export function PedirBar({
                 willChange: 'transform',
                 translateZ: 0,
               }}
+              // Mostly horizontal shrink, plus a light vertical squeeze so the
+              // pill collapses to a small "dot" rather than a tall thin line
+              // right before it fully disappears.
               animate={{
                 scaleX: isMenuOpen ? 1 : 0,
-                scaleY: 1,
+                scaleY: isMenuOpen ? 1 : 0.4,
                 y: isMenuOpen ? naturalY : 0,
               }}
-              initial={{ scaleX: 0, scaleY: 1, y: 0 }}
+              initial={{ scaleX: 0, scaleY: 0.4, y: 0 }}
               transition={transition}
             >
               <PressableButton
