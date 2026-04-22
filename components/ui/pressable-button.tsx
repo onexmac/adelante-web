@@ -77,7 +77,9 @@ export const PressableButton = forwardRef<HTMLButtonElement, PressableButtonProp
       >
         {children}
 
-        {/* Halo — ring drawn OUTSIDE bounds, doesn't affect layout. */}
+        {/* Halo — ring drawn OUTSIDE bounds, doesn't affect layout.
+            Promoted to its own compositor layer at mount (translateZ) so
+            toggling opacity at press doesn't trigger paint on neighbors. */}
         <motion.span
           aria-hidden
           initial={false}
@@ -94,6 +96,7 @@ export const PressableButton = forwardRef<HTMLButtonElement, PressableButtonProp
             border: `${haloWidth}px solid ${haloColor}`,
             pointerEvents: 'none',
             willChange: 'opacity',
+            transform: 'translateZ(0)',
           }}
         />
       </button>

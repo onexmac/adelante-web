@@ -119,7 +119,7 @@ export function QuantitySlider({ received, requested, onChange, className }: Qua
       )}
 
       {/* Fill — width is a motion value, updates on the same animation
-          frame as the thumb. No React renders during drag. */}
+          frame as the thumb. Layer promoted at mount. */}
       <motion.div
         aria-hidden
         className="absolute inset-y-0 left-0 rounded-[20px]"
@@ -127,10 +127,11 @@ export function QuantitySlider({ received, requested, onChange, className }: Qua
           width: fillWidth,
           backgroundColor: isExcess ? 'rgb(234, 158, 158)' : 'rgb(71, 71, 71)',
           willChange: 'width',
+          transform: 'translateZ(0)',
         }}
       />
 
-      {/* Thumb — translates via GPU transform. */}
+      {/* Thumb — GPU transform. Layer promoted at mount so first touch is free. */}
       <motion.div
         className="draggable-x absolute left-0 top-0 flex items-center justify-center rounded-[16px] text-white font-bold"
         drag="x"
@@ -144,7 +145,9 @@ export function QuantitySlider({ received, requested, onChange, className }: Qua
           height: TRACK_HEIGHT,
           backgroundColor: isExcess ? 'rgb(217, 115, 115)' : 'rgb(46, 46, 46)',
           willChange: 'transform',
+          translateZ: 0,
         }}
+        onPointerDown={() => haptic.select()}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
         role="slider"

@@ -3,13 +3,14 @@
 /**
  * SlideToConfirm — drag the knob rightward past the threshold to commit.
  *
- * Key perf decisions vs. the earlier draft:
- *  - Knob position uses motion's `x` (GPU transform). No width animation.
- *  - Trail behind the knob is a sibling element whose width is driven by
- *    React state updates at drag-milestones only (every quarter), so we
- *    don't touch layout every frame.
- *  - `touch-action: pan-y` on the knob so vertical scroll still works while
- *    the knob captures horizontal drags (fixes "feels laggy" on mobile).
+ * Perf discipline (no React in the drag hot path):
+ *  - Knob `x` is a motion value (GPU translate3d). No per-frame React renders.
+ *  - Trail width is a useTransform of `x` (motion-driven, updates on the
+ *    same animation frame as the knob, no React renders during drag).
+ *  - Knob + trail are PROMOTED TO COMPOSITOR LAYERS at mount via translateZ(0)
+ *    so the first touch doesn't pay a layer-creation cost.
+ *  - Haptic fires on onPointerDown (earlier than onDragStart) for instant feel.
+ *  - touch-action: pan-y on the knob so vertical scroll still works on mobile.
  *
  * Semantics (mirrors SlideToConfirm.swift):
  *  - Haptic ticks at 25/50/75% progress.
@@ -57,8 +58,9 @@ export function SlideToConfirm({
   const x = useMotionValue(0);
   const [isConfirmed, setConfirmed] = useState(false);
   const [isDragging, setDragging] = useState(false);
-  const [fillExtraPx, setFillExtraPx] = useState(0);
   const lastTickRef = useRef(0);
+  // Trail width, driven directly from `x` — no React state during drag.
+  const trailWidth = useTransform(x, (v) => KNOB_WIDTH + v);
 
   // Observe container — measured only on resize, not per-frame.
   useEffect(() => {
@@ -69,17 +71,9 @@ export function SlideToConfirm({
     return () => obs.disconnect();
   }, []);
 
-  // Tap-to-drag threshold: record initial pointer pos to distinguish
-  // meaningful drags from taps. We use motion's onDragStart/End which
-  // already does this, but we need the translation magnitude on end.
-  const dragStartRef = useRef(0);
-
-  // Drive the trail's width reactively from x, but only update state in
-  // coarse steps — drag runs at 60fps on GPU, we update React at ~15fps.
+  // Drag-time side effects only — no setState here, trail width is a
+  // useTransform so it updates without React.
   useMotionValueEvent(x, 'change', (latest) => {
-    const rounded = Math.round(latest / 4) * 4; // snap to 4px grid for perf
-    if (Math.abs(rounded - fillExtraPx) >= 4) setFillExtraPx(rounded);
-
     if (maxDrag <= 0 || isConfirmed) return;
     const p = Math.max(0, Math.min(1, latest / maxDrag));
     const tick = Math.floor(p * 4);
@@ -104,7 +98,6 @@ export function SlideToConfirm({
     onConfirm();
     window.setTimeout(() => {
       animate(x, 0, springs.settling);
-      setFillExtraPx(0);
       setConfirmed(false);
       lastTickRef.current = 0;
       onReset?.();
@@ -142,18 +135,22 @@ export function SlideToConfirm({
         ›
       </motion.span>
 
-      {/* Green trail — width coarsely stepped from motion value; no per-frame layout */}
-      <div
+      {/* Green trail — width driven by `x` via useTransform. No React renders
+          during drag. Promoted to its own compositor layer preemptively. */}
+      <motion.div
         aria-hidden
         className="absolute left-0 top-0 h-full bg-brand"
         style={{
-          width: KNOB_WIDTH + fillExtraPx,
+          width: trailWidth,
           borderRadius: CORNER,
           willChange: 'width',
+          transform: 'translateZ(0)',
         }}
       />
 
-      {/* Knob — fixed width, translates via GPU transform */}
+      {/* Knob — fixed width, translates via GPU transform. Promoted to its
+          own compositor layer at mount via translateZ(0) — the first touch
+          doesn't pay a layer-creation cost. */}
       <motion.div
         className="draggable-x absolute left-0 top-0 flex items-center justify-center font-bold tracking-wider text-black"
         drag="x"
@@ -169,12 +166,15 @@ export function SlideToConfirm({
           borderRadius: CORNER,
           boxShadow: '0 6px 14px rgba(0,0,0,0.15)',
           willChange: 'transform',
+          translateZ: 0,
         }}
-        onDragStart={(_, info) => {
+        onPointerDown={() => {
+          // Fires earlier than onDragStart — haptic feels instant.
+          if (!isConfirmed) haptic.select();
+        }}
+        onDragStart={() => {
           if (isConfirmed) return;
           setDragging(true);
-          dragStartRef.current = info.point.x;
-          haptic.select();
         }}
         onDragEnd={(_, info) => {
           if (isConfirmed) return;
