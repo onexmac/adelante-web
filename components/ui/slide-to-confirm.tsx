@@ -70,6 +70,10 @@ export function SlideToConfirm({
   const [isConfirmed, setConfirmed] = useState(false);
   const isDraggingRef = useRef(false);
   const lastTickRef = useRef(0);
+  // Pending nudge-return timer. Cleared on re-tap and on drag start so a
+  // stale "go back to 0" can't run after the user has started a new
+  // interaction, which was leaving the pill stranded at x > 0.
+  const nudgeTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -77,6 +81,13 @@ export function SlideToConfirm({
     const obs = new ResizeObserver(([e]) => setContainerWidth(e.contentRect.width));
     obs.observe(el);
     return () => obs.disconnect();
+  }, []);
+
+  // Clean up any pending nudge timer on unmount.
+  useEffect(() => {
+    return () => {
+      if (nudgeTimerRef.current != null) window.clearTimeout(nudgeTimerRef.current);
+    };
   }, []);
 
   // Sync knob x to isArmed whenever it flips (and user isn't dragging).
@@ -105,16 +116,24 @@ export function SlideToConfirm({
   });
 
   // Nudge — springs tuned to match SwiftUI's (response 0.22/0.36, damping 0.55/0.72).
+  // Stores its timer so repeat taps / drags can cancel the pending return-to-0.
   const nudge = () => {
     haptic.select();
-    // Kick: bouncy, under-damped
+    if (nudgeTimerRef.current != null) window.clearTimeout(nudgeTimerRef.current);
     animate(x, 52, { type: 'spring', stiffness: 800, damping: 15 });
     animate(knobScale, 1.04, { type: 'spring', stiffness: 800, damping: 14 });
-    window.setTimeout(() => {
-      // Return: damped, settles smoothly
+    nudgeTimerRef.current = window.setTimeout(() => {
+      nudgeTimerRef.current = null;
       animate(x, 0, { type: 'spring', stiffness: 320, damping: 24 });
       animate(knobScale, 1, { type: 'spring', stiffness: 320, damping: 24 });
     }, 180);
+  };
+
+  const cancelNudgeTimer = () => {
+    if (nudgeTimerRef.current != null) {
+      window.clearTimeout(nudgeTimerRef.current);
+      nudgeTimerRef.current = null;
+    }
   };
 
   const commit = () => {
@@ -214,15 +233,24 @@ export function SlideToConfirm({
         }}
         onDragStart={() => {
           isDraggingRef.current = true;
+          // If a nudge's return-to-0 was still pending, kill it — the drag
+          // is the new source of truth for x.
+          cancelNudgeTimer();
+          // Also knob-scale should reset if we were mid-bounce.
+          animate(knobScale, 1, { type: 'spring', stiffness: 400, damping: 30 });
         }}
         onDragEnd={(_, info) => {
           isDraggingRef.current = false;
           if (isConfirmed || !isArmed) return;
-          // onTap covers the tap case; here we only handle real drags.
-          if (Math.abs(info.offset.x) < 4) return;
+          // Any drag that ends below threshold should spring back to 0 —
+          // do NOT early-return for small offsets. Stranded-x bug fix.
           const progress = maxDrag > 0 ? x.get() / maxDrag : 0;
-          if (progress >= THRESHOLD) commit();
-          else animate(x, 0, springs.snappy);
+          if (Math.abs(info.offset.x) >= 4 && progress >= THRESHOLD) {
+            commit();
+          } else {
+            animate(x, 0, springs.snappy);
+            animate(knobScale, 1, { type: 'spring', stiffness: 400, damping: 30 });
+          }
         }}
         role="button"
         aria-label={label}

@@ -36,17 +36,20 @@ function vibrate(pattern: number | number[]) {
   }
 }
 
+// Durations: Android hardware varies wildly. Sub-10ms is often imperceptible
+// on mid-tier devices. These values are a bit long for taste on a high-end
+// phone but land reliably across the Android fleet.
 export const haptic = {
   /** Success confirmation. Three-pulse pattern. */
-  complete: () => vibrate([10, 30, 10]),
-  /** Tap / selection. Lightest touch. */
-  select:   () => vibrate(10),
+  complete: () => vibrate([15, 40, 15]),
+  /** Tap / selection. Short but perceptible. */
+  select:   () => vibrate(15),
   /** Drag milestone (e.g. quarter-progress crossing). */
-  drag:     () => vibrate(12),
+  drag:     () => vibrate(18),
   /** Removal or warning. Two-pulse. */
-  delete:   () => vibrate([15, 10, 15]),
+  delete:   () => vibrate([20, 15, 20]),
   /** Validation failure. Five-pulse alarm. */
-  error:    () => vibrate([20, 40, 20, 40, 20]),
+  error:    () => vibrate([25, 50, 25, 50, 25]),
 } as const;
 
 export type HapticEvent = keyof typeof haptic;

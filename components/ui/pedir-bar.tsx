@@ -91,7 +91,10 @@ export function PedirBar({
               style={{
                 width: PILL_WIDTH,
                 height: PILL_HEIGHT,
-                transformOrigin: 'bottom left',
+                // Anchor horizontally at the MENU BUTTON'S CENTER (not the
+                // pill's own left edge) so the pill collapses/grows toward
+                // the middle of the button, not the left edge.
+                transformOrigin: `${MENU_WIDTH / 2}px 100%`,
                 pointerEvents: isMenuOpen ? 'auto' : 'none',
                 willChange: 'transform',
                 translateZ: 0,
