@@ -1,26 +1,82 @@
 @import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+ * Adelante design tokens.
+ * Colors are stored as rgb triplets so we can compose with alpha when needed.
+ * Components should reference Tailwind tokens (e.g. bg-brand) — not raw hex.
+ */
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --adelante-green:       189 222 59;
+  --adelante-green-halo:  133 166 41;
+  --adelante-excess:      234 158 158;
+  --adelante-excess-dark: 217 115 115;
+  --halo-black:           140 140 140;
+  --halo-white:           210 210 210;
+
+  --surface-bg:           245 245 245;
+  --surface-card:         255 255 255;
+  --surface-card-muted:   244 244 244;
+  --fg-primary:           17 17 17;
+  --fg-secondary:         115 115 115;
+
+  --corner-pill:          20px;
+  --corner-card:          16px;
+  --corner-check:          6px;
+}
+
+.dark {
+  --surface-bg:           12 12 12;
+  --surface-card:         38 38 38;
+  --surface-card-muted:   46 46 46;
+  --fg-primary:           244 244 244;
+  --fg-secondary:         156 156 156;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-background:       rgb(var(--surface-bg));
+  --color-foreground:       rgb(var(--fg-primary));
+  --color-card:             rgb(var(--surface-card));
+  --color-card-muted:       rgb(var(--surface-card-muted));
+  --color-muted-foreground: rgb(var(--fg-secondary));
+  --color-brand:            rgb(var(--adelante-green));
+  --color-brand-halo:       rgb(var(--adelante-green-halo));
+  --color-excess:           rgb(var(--adelante-excess));
+  --color-excess-dark:      rgb(var(--adelante-excess-dark));
+  --color-halo-black:       rgb(var(--halo-black));
+  --color-halo-white:       rgb(var(--halo-white));
+
+  --radius-pill:            var(--corner-pill);
+  --radius-card:            var(--corner-card);
+  --radius-check:           var(--corner-check);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html, body {
+  background: rgb(var(--surface-bg));
+  color: rgb(var(--fg-primary));
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+/*
+ * Prototype surfaces only — avoids accidental text selection on drag,
+ * pull-to-refresh, and tap highlights that don't happen in native.
+ * Doc/DS pages are unaffected.
+ */
+[data-prototype] {
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  overscroll-behavior-y: contain;
+  touch-action: manipulation;
+}
+[data-prototype] button {
+  -webkit-tap-highlight-color: transparent;
+}
+/* motion's horizontal drag — allow vertical scrolling on drag elements */
+[data-prototype] .draggable-x {
+  touch-action: pan-y;
 }
