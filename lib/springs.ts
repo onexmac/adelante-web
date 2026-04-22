@@ -17,6 +17,9 @@ export const springs = {
   settling:   { type: 'spring', stiffness: 170, damping: 28 },
   // Near-critically-damped. For shrinking where overshoot would cause overflow.
   shrinking:  { type: 'spring', stiffness: 280, damping: 36 },
+  // Bouncy, fast — for small widgets popping into view (menu pills cascade).
+  // Visible overshoot gives the "natural spring" feel.
+  popping:    { type: 'spring', stiffness: 450, damping: 20 },
 } as const satisfies Record<string, Transition>;
 
 export type SpringName = keyof typeof springs;

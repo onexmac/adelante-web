@@ -77,7 +77,7 @@ export function PedirBar({
           const openDelay = (count - 1 - index) * 0.05;
           const closeDelay = index * 0.04;
           const transition = isMenuOpen
-            ? { ...springs.expanding, delay: openDelay }
+            ? { ...springs.popping, delay: openDelay }   // bouncy, fast
             : { ...springs.shrinking, delay: closeDelay };
 
           const Icon = item.icon;
