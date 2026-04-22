@@ -154,9 +154,21 @@ export function PedirBar({
         )}
       </AnimatePresence>
 
-      {/* Menu button — rendered BEFORE the slider (z-below) so the growing
-          track visually covers it on arm. Springs into position faster than
-          the slider expansion for a crisper feel on disarm. */}
+      {/* SlideToConfirm — ALWAYS full width. Visual state driven by `isArmed`. */}
+      <SlideToConfirm
+        isArmed={isArmed}
+        onArm={arm}
+        onConfirm={onConfirm}
+        onReset={() => onArmChange(false)}
+        successHoldMs={700}
+      />
+
+      {/* Menu button — rendered AFTER SlideToConfirm so it sits ON TOP in z.
+          The slider container defaults to pointer-events:auto, so without
+          this ordering, clicks at the menu button's position hit the slider
+          container (no handler → nothing happens). On arm, the button fades
+          out with opacity+scale while the black track expands visually
+          "through" it. */}
       <motion.div
         className="absolute left-0 bottom-0"
         style={{
@@ -189,15 +201,6 @@ export function PedirBar({
             : <ChevronsUp size={22} strokeWidth={3} />}
         </PressableButton>
       </motion.div>
-
-      {/* SlideToConfirm — ALWAYS full width. Visual state driven by `isArmed`. */}
-      <SlideToConfirm
-        isArmed={isArmed}
-        onArm={arm}
-        onConfirm={onConfirm}
-        onReset={() => onArmChange(false)}
-        successHoldMs={700}
-      />
     </div>
   );
 }

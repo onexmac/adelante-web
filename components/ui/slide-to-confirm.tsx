@@ -203,10 +203,14 @@ export function SlideToConfirm({
         onPointerDown={() => {
           if (!isConfirmed) haptic.select();
         }}
-        onClick={() => {
-          // Fires only when drag is disabled (i.e., collapsed).
-          if (isConfirmed || isArmed) return;
-          onArm?.();
+        // motion's onTap fires for a tap WITHOUT a meaningful drag (below
+        // drag threshold). This is the only reliable way to get a nudge
+        // when the user taps an armed pill — onDragEnd only fires after a
+        // real drag starts.
+        onTap={() => {
+          if (isConfirmed) return;
+          if (isArmed) nudge();
+          else onArm?.();
         }}
         onDragStart={() => {
           isDraggingRef.current = true;
@@ -214,10 +218,8 @@ export function SlideToConfirm({
         onDragEnd={(_, info) => {
           isDraggingRef.current = false;
           if (isConfirmed || !isArmed) return;
-          if (Math.abs(info.offset.x) < 4) {
-            nudge();
-            return;
-          }
+          // onTap covers the tap case; here we only handle real drags.
+          if (Math.abs(info.offset.x) < 4) return;
           const progress = maxDrag > 0 ? x.get() / maxDrag : 0;
           if (progress >= THRESHOLD) commit();
           else animate(x, 0, springs.snappy);
