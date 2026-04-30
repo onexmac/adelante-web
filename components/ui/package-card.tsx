@@ -2,25 +2,28 @@
 
 /**
  * PackageCard — supplier package row. Collapsed (header only) or expanded
- * (header + items + close button).
+ * (header + MaterialList items + close button).
  *
- * Dropdown inverts with color scheme: black pill in light, white in dark
- * (so it doesn't disappear into a dark card). Halo color matches.
- * Card fill is a clearly-visible surface in both modes (not pure black).
+ * v0.1.00 layout (Figma node 1153:2979):
+ *   NOVARUM         (supplier, small uppercase, muted)
+ *   C.01            (code, large bold)
+ *   BS000095        (reference, medium bold)
+ *   ⓘ Ayer 10:25 am (date row, muted)
  *
- * The card's "tap to expand" lives on the header's text column only — so
- * the Buttons to its right own their own press states.
+ * The dropdown stays black/white with the color scheme. The checkbox is
+ * now a circular ring (see CheckboxMark). Items in the expanded state use
+ * MaterialListItem (text + circular progress badge), not the qty slider.
  */
 
 import { motion } from 'motion/react';
 import { CaretUpDown, X, Info } from '@phosphor-icons/react';
-import type { MockPackage, MockPackageItem } from '@/lib/types';
+import type { MockPackage } from '@/lib/types';
 import { haptic } from '@/lib/haptic';
 import { springs } from '@/lib/springs';
 import { cn } from '@/lib/utils';
 import { CheckboxMark } from './checkbox-mark';
+import { MaterialListItem } from './material-list-item';
 import { PressableButton, halo } from './pressable-button';
-import { QuantitySlider } from './quantity-slider';
 
 export interface PackageCardProps {
   pkg: MockPackage;
@@ -28,7 +31,8 @@ export interface PackageCardProps {
   onToggle: () => void;
   onConfirm: () => void;
   onClose: () => void;
-  onItemReceivedChange: (itemId: string, received: number) => void;
+  /** Kept for parent compatibility — MaterialListItem is read-only for now. */
+  onItemReceivedChange?: (itemId: string, received: number) => void;
 }
 
 export function PackageCard({
@@ -37,12 +41,9 @@ export function PackageCard({
   onToggle,
   onConfirm,
   onClose,
-  onItemReceivedChange,
 }: PackageCardProps) {
   return (
-    <div
-      className={cn('rounded-card bg-card p-5 transition-colors')}
-    >
+    <div className={cn('rounded-card bg-card p-5 transition-colors')}>
       <div className="flex items-start gap-3">
         {/* Text column — tappable, but doesn't steal from right-hand Buttons */}
         <button
@@ -62,21 +63,23 @@ export function PackageCard({
             <div className="text-[28px] font-bold leading-none">
               {pkg.code}
             </div>
-            <div className="flex items-center gap-2.5 pt-2.5 text-[15px] text-muted-foreground">
-              <Info size={16} />
+            <div className="pt-1 text-[18px] font-bold leading-tight tabular-nums">
+              {pkg.reference}
+            </div>
+            <div className="flex items-center gap-2 pt-2.5 text-[14px] text-muted-foreground">
+              <Info size={16} weight="regular" />
               <span>{pkg.date}</span>
-              <span className="font-semibold text-foreground">{pkg.reference}</span>
             </div>
           </div>
         </button>
 
         {/* Header actions */}
-        <div className="flex items-start gap-2 pt-1.5">
-          {/* Checkbox — halo is proportionally thinner (button is small) */}
+        <div className="flex items-start gap-3 pt-1.5">
+          {/* Circular checkbox */}
           <PressableButton
             haloColor={halo.black}
             haloWidth={3}
-            cornerRadius={6}
+            cornerRadius={999}
             onClick={() => {
               haptic.select();
               onConfirm();
@@ -92,7 +95,7 @@ export function PackageCard({
             cornerRadius={20}
             haloColor={halo.black}
             onClick={onToggle}
-            style={{ width: 60, height: 72, borderRadius: 20 }}
+            style={{ width: 60, height: 88, borderRadius: 20 }}
             className={cn(
               'flex items-center justify-center',
               'bg-black text-white dark:bg-white dark:text-black'
@@ -106,12 +109,8 @@ export function PackageCard({
         </div>
       </div>
 
-      {/* Expanded content.
-          Outer: height animates 0 ↔ auto — motion measures the child's
-          natural size and animates to a px value. overflow hidden so
-          siblings below reflow as it grows/shrinks.
-          Inner: scale + opacity for the "grow from top" feel. One tree,
-          one spring — no layout+AnimatePresence conflict. */}
+      {/* Expanded content. Outer animates height; inner does scale+opacity
+          from top-center so the reveal reads as growing downward. */}
       <motion.div
         initial={false}
         animate={{ height: isExpanded ? 'auto' : 0 }}
@@ -129,17 +128,13 @@ export function PackageCard({
         >
           <div className="mt-4 h-px bg-black/10 dark:bg-white/10" />
 
-          <div className="mt-5 space-y-5">
+          <div className="mt-3 divide-y divide-black/5 dark:divide-white/5">
             {pkg.items.map((item) => (
-              <ItemRow
-                key={item.id}
-                item={item}
-                onReceivedChange={(v) => onItemReceivedChange(item.id, v)}
-              />
+              <MaterialListItem key={item.id} item={item} />
             ))}
           </div>
 
-          <div className="mt-5 flex justify-end">
+          <div className="mt-4 flex justify-end">
             <PressableButton
               haloColor={halo.black}
               cornerRadius={20}
@@ -153,32 +148,6 @@ export function PackageCard({
           </div>
         </motion.div>
       </motion.div>
-    </div>
-  );
-}
-
-function ItemRow({
-  item,
-  onReceivedChange,
-}: {
-  item: MockPackageItem;
-  onReceivedChange: (v: number) => void;
-}) {
-  return (
-    <div className="space-y-2">
-      <div className="flex items-baseline gap-2">
-        <div className="flex-1 text-[12px] font-bold leading-snug tracking-wide">
-          {item.name}
-        </div>
-        <div className="text-[13px] font-semibold tabular-nums text-muted-foreground">
-          / {item.requested}
-        </div>
-      </div>
-      <QuantitySlider
-        received={item.received}
-        requested={item.requested}
-        onChange={onReceivedChange}
-      />
     </div>
   );
 }

@@ -91,7 +91,14 @@ export function SlideToConfirm({
   }, []);
 
   // Sync knob x to isArmed whenever it flips (and user isn't dragging).
+  // Also cancels any pending nudge return — otherwise a nudge's setTimeout
+  // from before the disarm could fire animate(x, 0) after disarm had
+  // already animated x to maxDrag, snapping the pill back to the left.
   useEffect(() => {
+    if (nudgeTimerRef.current != null) {
+      window.clearTimeout(nudgeTimerRef.current);
+      nudgeTimerRef.current = null;
+    }
     if (isDraggingRef.current) return;
     animate(x, isArmed ? 0 : maxDrag, isArmed ? springs.expanding : springs.shrinking);
   }, [isArmed, maxDrag, x]);
@@ -127,13 +134,6 @@ export function SlideToConfirm({
       animate(x, 0, { type: 'spring', stiffness: 320, damping: 24 });
       animate(knobScale, 1, { type: 'spring', stiffness: 320, damping: 24 });
     }, 180);
-  };
-
-  const cancelNudgeTimer = () => {
-    if (nudgeTimerRef.current != null) {
-      window.clearTimeout(nudgeTimerRef.current);
-      nudgeTimerRef.current = null;
-    }
   };
 
   const commit = () => {
@@ -233,21 +233,23 @@ export function SlideToConfirm({
         }}
         onDragStart={() => {
           isDraggingRef.current = true;
-          // If a nudge's return-to-0 was still pending, kill it — the drag
-          // is the new source of truth for x.
-          cancelNudgeTimer();
-          // Also knob-scale should reset if we were mid-bounce.
-          animate(knobScale, 1, { type: 'spring', stiffness: 400, damping: 30 });
+          // DELIBERATELY no nudge-state manipulation here. motion can fire
+          // onDragStart on a plain tap (before any real drag threshold is
+          // crossed); cancelling the nudge timer there was the cause of
+          // "pill stuck grown" — the timer would be killed, and the nudge
+          // never got to spring x back to 0. If the user really is
+          // dragging, motion writes x directly, and the pending timer /
+          // onDragEnd both target x=0 harmlessly.
         }}
         onDragEnd={(_, info) => {
           isDraggingRef.current = false;
           if (isConfirmed || !isArmed) return;
-          // Any drag that ends below threshold should spring back to 0 —
-          // do NOT early-return for small offsets. Stranded-x bug fix.
           const progress = maxDrag > 0 ? x.get() / maxDrag : 0;
           if (Math.abs(info.offset.x) >= 4 && progress >= THRESHOLD) {
             commit();
           } else {
+            // Non-commit release: spring back to rest and reset scale in
+            // case a nudge bounce was still in flight.
             animate(x, 0, springs.snappy);
             animate(knobScale, 1, { type: 'spring', stiffness: 400, damping: 30 });
           }
