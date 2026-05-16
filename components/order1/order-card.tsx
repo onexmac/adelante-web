@@ -12,7 +12,6 @@
 import { motion } from 'motion/react';
 import { CaretUpDown, X, Info } from '@phosphor-icons/react';
 import { haptic } from '@/lib/haptic';
-import { springs } from '@/lib/springs';
 import { cn } from '@/lib/utils';
 import { PressableButton, halo } from '@/components/ui/pressable-button';
 import { OptionRow } from './option-row';
@@ -90,35 +89,44 @@ export function OrderCard({
         </PressableButton>
       </div>
 
-      {/* Options — height-auto + inner scale, same pattern as PackageCard */}
-      <motion.div
-        initial={false}
-        animate={{ height: isExpanded ? 'auto' : 0 }}
-        transition={springs.expanding}
-        style={{ overflow: 'hidden' }}
+      {/* Options expansion.
+          Browser-native CSS grid trick: interpolate grid-template-rows from
+          0fr to 1fr. The browser handles the height as a smooth animation
+          without measuring or springing past the target. Inner div clips
+          and `min-height: 0` lets the row collapse cleanly to 0.
+          Content opacity fades in/out slightly delayed so the reveal reads
+          as "card grows, then content appears." */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateRows: isExpanded ? '1fr' : '0fr',
+          transition: 'grid-template-rows 420ms cubic-bezier(0.22, 1, 0.36, 1)',
+        }}
       >
-        <motion.div
-          initial={false}
-          animate={{
-            opacity: isExpanded ? 1 : 0,
-            scale: isExpanded ? 1 : 0.94,
-          }}
-          transition={springs.expanding}
-          style={{ transformOrigin: 'top center' }}
-        >
-          <div className="mt-4 h-px bg-black/10 dark:bg-white/10" />
-          <div className="mt-3 flex flex-col gap-1">
-            {options.map((opt) => (
-              <OptionRow
-                key={opt.id}
-                label={opt.label}
-                isSelected={selectedOptionId === opt.id}
-                onSelect={() => onSelectOption(opt.id)}
-              />
-            ))}
-          </div>
-        </motion.div>
-      </motion.div>
+        <div style={{ overflow: 'hidden', minHeight: 0 }}>
+          <motion.div
+            initial={false}
+            animate={{ opacity: isExpanded ? 1 : 0 }}
+            transition={{
+              duration: isExpanded ? 0.32 : 0.2,
+              ease: 'easeOut',
+              delay: isExpanded ? 0.1 : 0,
+            }}
+          >
+            <div className="mt-4 h-px bg-black/10 dark:bg-white/10" />
+            <div className="mt-3 flex flex-col gap-1">
+              {options.map((opt) => (
+                <OptionRow
+                  key={opt.id}
+                  label={opt.label}
+                  isSelected={selectedOptionId === opt.id}
+                  onSelect={() => onSelectOption(opt.id)}
+                />
+              ))}
+            </div>
+          </motion.div>
+        </div>
+      </div>
     </div>
   );
 }
